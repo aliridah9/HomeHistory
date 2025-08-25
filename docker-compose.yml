@@ -1,0 +1,241 @@
+# HomeHistory Real Estate Data Ingestion - Docker Compose
+# Complete development and production environment setup
+
+version: '3.8'
+
+services:
+  # =============================================================================
+  # Main Application Service
+  # =============================================================================
+  app:
+    build:
+      context: .
+      target: production
+      args:
+        BUILD_DATE: ${BUILD_DATE:-}
+        VCS_REF: ${VCS_REF:-}
+        VERSION: ${VERSION:-latest}
+    image: hh-ingest:latest
+    container_name: hh-ingest-app
+    restart: unless-stopped
+    environment:
+      # Database connection to postgres service
+      - HH_DATABASE_URL=postgresql://postgres:${POSTGRES_PASSWORD:-password}@postgres:5432/${POSTGRES_DB:-hh_ingest}
+      - HH_DIRECT_URL=postgresql://postgres:${POSTGRES_PASSWORD:-password}@postgres:5432/${POSTGRES_DB:-hh_ingest}
+      
+      # Pass through environment variables
+      - HH_ATTOM_API_KEY=${HH_ATTOM_API_KEY}
+      - HH_SCRAPER_MODE=${HH_SCRAPER_MODE:-both}
+      - HH_OUTPUT_DIR=/app/output
+      - HH_REGIONS=${HH_REGIONS:-houston_metro}
+      - HH_LOG_LEVEL=${HH_LOG_LEVEL:-INFO}
+      - HH_LOG_FILE=/app/logs/hh_ingest.log
+      
+      # Scraping configuration
+      - HH_MAX_REQUESTS_PER_SECOND=${HH_MAX_REQUESTS_PER_SECOND:-1.0}
+      - HH_RESPECT_ROBOTS_TXT=${HH_RESPECT_ROBOTS_TXT:-true}
+      - HH_BROWSER_HEADLESS=${HH_BROWSER_HEADLESS:-true}
+    volumes:
+      # Persistent storage for outputs and logs
+      - ./output:/app/output
+      - ./logs:/app/logs
+      - ./data:/app/data
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - hh-network
+    # Default command (override in docker-compose.override.yml if needed)
+    command: ["--help"]
+
+  # =============================================================================
+  # Development Application Service
+  # =============================================================================
+  app-dev:
+    build:
+      context: .
+      target: development
+    image: hh-ingest:dev
+    container_name: hh-ingest-dev
+    profiles: ["dev"]  # Only start with --profile dev
+    environment:
+      - HH_DATABASE_URL=postgresql://postgres:${POSTGRES_PASSWORD:-password}@postgres:5432/${POSTGRES_DB:-hh_ingest}
+      - HH_DIRECT_URL=postgresql://postgres:${POSTGRES_PASSWORD:-password}@postgres:5432/${POSTGRES_DB:-hh_ingest}
+      - HH_ATTOM_API_KEY=${HH_ATTOM_API_KEY}
+      - HH_SCRAPER_MODE=${HH_SCRAPER_MODE:-json}
+      - HH_OUTPUT_DIR=/app/output
+      - HH_LOG_LEVEL=DEBUG
+      - HH_BROWSER_HEADLESS=false  # For development debugging
+    volumes:
+      # Mount source code for development
+      - .:/app
+      - ./output:/app/output
+      - ./logs:/app/logs
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - hh-network
+    # Keep container running for interactive development
+    command: ["sleep", "infinity"]
+
+  # =============================================================================
+  # PostgreSQL Database
+  # =============================================================================
+  postgres:
+    image: postgres:15-alpine
+    container_name: hh-ingest-postgres
+    restart: unless-stopped
+    environment:
+      - POSTGRES_DB=${POSTGRES_DB:-hh_ingest}
+      - POSTGRES_USER=${POSTGRES_USER:-postgres}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-password}
+      - POSTGRES_INITDB_ARGS=--auth-host=scram-sha-256
+    volumes:
+      # Persistent database storage
+      - postgres_data:/var/lib/postgresql/data
+      # Optional: Custom initialization scripts
+      - ./docker/postgres/init:/docker-entrypoint-initdb.d:ro
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    networks:
+      - hh-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-hh_ingest}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # =============================================================================
+  # Redis Cache (Optional - for future caching features)
+  # =============================================================================
+  redis:
+    image: redis:7-alpine
+    container_name: hh-ingest-redis
+    profiles: ["redis"]  # Only start with --profile redis
+    restart: unless-stopped
+    volumes:
+      - redis_data:/data
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    networks:
+      - hh-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # =============================================================================
+  # Database Administration (Optional)
+  # =============================================================================
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: hh-ingest-pgadmin
+    profiles: ["admin"]  # Only start with --profile admin
+    restart: unless-stopped
+    environment:
+      - PGADMIN_DEFAULT_EMAIL=${PGADMIN_EMAIL:-admin@homehistory.com}
+      - PGADMIN_DEFAULT_PASSWORD=${PGADMIN_PASSWORD:-admin}
+      - PGADMIN_CONFIG_SERVER_MODE=False
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    ports:
+      - "${PGADMIN_PORT:-8080}:80"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - hh-network
+
+  # =============================================================================
+  # Monitoring and Observability (Optional)
+  # =============================================================================
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: hh-ingest-prometheus
+    profiles: ["monitoring"]
+    restart: unless-stopped
+    ports:
+      - "${PROMETHEUS_PORT:-9090}:9090"
+    volumes:
+      - ./docker/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    networks:
+      - hh-network
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: hh-ingest-grafana
+    profiles: ["monitoring"]
+    restart: unless-stopped
+    ports:
+      - "${GRAFANA_PORT:-3000}:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin}
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./docker/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    depends_on:
+      - prometheus
+    networks:
+      - hh-network
+
+# =============================================================================
+# Networks
+# =============================================================================
+networks:
+  hh-network:
+    driver: bridge
+    name: hh-ingest-network
+
+# =============================================================================
+# Volumes
+# =============================================================================
+volumes:
+  postgres_data:
+    name: hh-ingest-postgres-data
+  redis_data:
+    name: hh-ingest-redis-data
+  pgadmin_data:
+    name: hh-ingest-pgadmin-data
+  prometheus_data:
+    name: hh-ingest-prometheus-data
+  grafana_data:
+    name: hh-ingest-grafana-data
+
+# =============================================================================
+# Usage Examples:
+# =============================================================================
+
+# Basic setup with database:
+# docker-compose up postgres
+# docker-compose run --rm app init-db
+# docker-compose run --rm app ingest --regions "houston_metro" --max-listings 10
+
+# Development mode:
+# docker-compose --profile dev up -d
+# docker-compose exec app-dev bash
+
+# Full stack with monitoring:
+# docker-compose --profile dev --profile admin --profile monitoring up -d
+
+# Production deployment:
+# docker-compose up -d app postgres
+
+# Run specific commands:
+# docker-compose run --rm app discover --regions "austin_metro"
+# docker-compose run --rm app test-connection
+# docker-compose run --rm app config
+
+# View logs:
+# docker-compose logs -f app
+# docker-compose logs postgres
+
+# Scale application (if needed):
+# docker-compose up --scale app=3
+
+# Cleanup:
+# docker-compose down -v  # Remove containers and volumes
+# docker-compose down --rmi all -v  # Remove everything including images
