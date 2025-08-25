@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>HomeHistory - The Carfax for Homes</title>
+    
+    <!-- Early global polyfill: define clear before Vite client loads -->
+    <script>
+      (function () {
+        try {
+          var clearFn = function () {
+            if (typeof console !== 'undefined' && console.clear) {
+              console.clear();
+            }
+          };
+          if (typeof globalThis !== 'undefined' && !globalThis.clear) {
+            globalThis.clear = clearFn;
+          }
+          if (typeof window !== 'undefined' && !window.clear) {
+            window.clear = clearFn;
+          }
+        } catch (_) {}
+      })();
+    </script>
+    
+    <!-- Meta Tags -->
+    <meta name="description" content="Discover property insights with AI-powered scoring, comprehensive history reports, and intelligent recommendations. The most advanced real estate intelligence platform." />
+    <meta name="keywords" content="real estate, property history, home scoring, AI, property intelligence, home reports, real estate analytics" />
+    <meta name="author" content="HomeHistory" />
+    <meta name="robots" content="index, follow" />
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://homehistory.com/" />
+    <meta property="og:title" content="HomeHistory - The Carfax for Homes" />
+    <meta property="og:description" content="Discover property insights with AI-powered scoring, comprehensive history reports, and intelligent recommendations." />
+    <meta property="og:image" content="https://homehistory.com/og-image.jpg" />
+    <meta property="og:site_name" content="HomeHistory" />
+    
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image" />
+    <meta property="twitter:url" content="https://homehistory.com/" />
+    <meta property="twitter:title" content="HomeHistory - The Carfax for Homes" />
+    <meta property="twitter:description" content="Discover property insights with AI-powered scoring, comprehensive history reports, and intelligent recommendations." />
+    <meta property="twitter:image" content="https://homehistory.com/twitter-image.jpg" />
+    <meta property="twitter:creator" content="@homehistory" />
+    
+    <!-- Theme and PWA -->
+    <meta name="theme-color" content="#0ea5e9" />
+    <meta name="msapplication-TileColor" content="#0ea5e9" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="HomeHistory" />
+    
+    <!-- Icons -->
+    <!-- minimal icons during dev -->
+    <link rel="icon" href="/favicon.svg" />
+    
+    <!-- Manifest -->
+    <!-- disable manifest during dev to avoid asset fetch noise -->
+    <!-- <link rel="manifest" href="/site.webmanifest" /> -->
+    
+    <!-- Preconnect to external domains -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="preconnect" href="https://api.mapbox.com" />
+    
+    <!-- DNS Prefetch -->
+    <link rel="dns-prefetch" href="//fonts.googleapis.com" />
+    <link rel="dns-prefetch" href="//fonts.gstatic.com" />
+    <link rel="dns-prefetch" href="//api.mapbox.com" />
+    
+    <!-- Preload critical resources -->
+    <!-- disable font preload during dev -->
+    <!-- <link rel="preload" href="/fonts/inter-var.woff2" as="font" type="font/woff2" crossorigin /> -->
+    
+    <!-- Critical CSS -->
+    <style>
+      /* Critical CSS for above-the-fold content */
+      html {
+        font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        line-height: 1.5;
+        -webkit-text-size-adjust: 100%;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+      }
+      
+      body {
+        margin: 0;
+        padding: 0;
+        min-height: 100vh;
+        background-color: #ffffff;
+        color: #1a1a1a;
+      }
+      
+      @media (prefers-color-scheme: dark) {
+        body {
+          background-color: #0a0a0a;
+          color: #ededed;
+        }
+      }
+      
+      /* Loading spinner */
+      .loading-spinner {
+        display: inline-block;
+        width: 40px;
+        height: 40px;
+        border: 4px solid #f3f3f3;
+        border-top: 4px solid #0ea5e9;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+      }
+      
+      @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+      }
+      
+      .loading-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        min-height: 100vh;
+        text-align: center;
+        gap: 1rem;
+      }
+      
+      .loading-text {
+        font-size: 1.125rem;
+        font-weight: 500;
+        color: #6b7280;
+      }
+      
+      /* Hide loading when app loads */
+      .app-loaded .loading-container {
+        display: none;
+      }
+    </style>
+    
+    <!-- Structured Data -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "Organization",
+      "name": "HomeHistory",
+      "description": "The most comprehensive real estate intelligence platform with AI-powered property scoring and insights.",
+      "url": "https://homehistory.com",
+      "logo": "https://homehistory.com/logo.png",
+      "sameAs": [
+        "https://twitter.com/homehistory",
+        "https://linkedin.com/company/homehistory"
+      ],
+      "contactPoint": {
+        "@type": "ContactPoint",
+        "telephone": "+1-555-HISTORY",
+        "contactType": "customer service"
+      }
+    }
+    </script>
+  </head>
+  <body>
+    <!-- App Root -->
+    <div id="root">
+      <!-- Loading fallback -->
+      <div class="loading-container">
+        <div class="loading-spinner"></div>
+        <div class="loading-text">Loading HomeHistory...</div>
+      </div>
+    </div>
+    
+    <!-- Scripts -->
+    <script type="module" src="/src/main.tsx"></script>
+    
+    <!-- Service Worker Registration -->
+    <script>
+      // Only register service worker outside of local development
+      const isLocalDev = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+      if ('serviceWorker' in navigator && !isLocalDev) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js')
+            .then((registration) => {
+              console.log('SW registered: ', registration);
+            })
+            .catch((registrationError) => {
+              console.log('SW registration failed: ', registrationError);
+            });
+        });
+      }
+    </script>
+    
+    <!-- No Script Fallback -->
+    <noscript>
+      <div style="text-align: center; padding: 2rem; font-family: system-ui, sans-serif;">
+        <h1>JavaScript Required</h1>
+        <p>HomeHistory requires JavaScript to function properly. Please enable JavaScript in your browser settings.</p>
+      </div>
+    </noscript>
+  </body>
+</html>

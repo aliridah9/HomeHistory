@@ -1,0 +1,101 @@
+[
+  {
+    "Property Address": "1916 Hawthorne St, Houston, TX 77098",
+    "Property URL": "https://www.zillow.com/homedetails/1916-Hawthorne-St-Houston-TX-77098/27820718_zpid/",
+    "Price (USD)": "650000",
+    "Number of Beds": "2",
+    "Number of Baths": "1",
+    "Square Footage": "1377",
+    "Home Type": "House for sale",
+    "Listing Agent/Company": "MY CASTLE REALTY",
+    "Property Image": "https://photos.zillowstatic.com/fp/d78a7e3a7a16585e0b6eb3dfe9c11ac9-p_e.jpg"
+  },
+  {
+    "Property Address": "9207 Bonhomme Rd, Houston, TX 77074",
+    "Property URL": "https://www.zillow.com/homedetails/9207-Bonhomme-Rd-Houston-TX-77074/27917119_zpid/",
+    "Price (USD)": "650000",
+    "Number of Beds": "4",
+    "Number of Baths": "4",
+    "Square Footage": "2898",
+    "Home Type": "House for sale",
+    "Listing Agent/Company": "RE/MAX PARTNERS",
+    "Property Image": "https://photos.zillowstatic.com/fp/66aaaf61029df1bf57f92f151d48d513-p_e.jpg"
+  },
+  {
+    "Property Address": "5324 Fayette St, Houston, TX 77056",
+    "Property URL": "https://www.zillow.com/homedetails/5324-Fayette-St-Houston-TX-77056/27950134_zpid/",
+    "Price (USD)": "650000",
+    "Number of Beds": "4",
+    "Number of Baths": "4",
+    "Square Footage": "3094",
+    "Home Type": "House for sale",
+    "Listing Agent/Company": "EXP REALTY LLC",
+    "Property Image": "https://photos.zillowstatic.com/fp/21468342cd803b0e644e209e993ed4b0-p_e.jpg"
+  },
+  {
+    "Property Address": "827 W 43rd St, Houston, TX 77018",
+    "Property URL": "https://www.zillow.com/homedetails/827-W-43rd-St-Houston-TX-77018/27873456_zpid/",
+    "Price (USD)": "635350",
+    "Number of Beds": "3",
+    "Number of Baths": "2",
+    "Square Footage": "1968",
+    "Home Type": "For sale by owner",
+    "Listing Agent/Company": "",
+    "Property Image": "https://photos.zillowstatic.com/fp/8b83b316c88d031dcaca6e1a90449579-p_e.jpg"
+  },
+  {
+    "Property Address": "5703 River Branch Dr, Kingwood, TX 77345",
+    "Property URL": "https://www.zillow.com/homedetails/5703-River-Branch-Dr-Kingwood-TX-77345/28472507_zpid/",
+    "Price (USD)": "939900",
+    "Number of Beds": "4",
+    "Number of Baths": "5",
+    "Square Footage": "4827",
+    "Home Type": "House for sale",
+    "Listing Agent/Company": "RE/MAX UNIVERSAL",
+    "Property Image": "https://photos.zillowstatic.com/fp/92c484ff03fc90ce208ee1f74a2ed4fc-p_e.jpg"
+  },
+  {
+    "Property Address": "419 Lassen Villa Ct, Huffman, TX 77336",
+    "Property URL": "https://www.zillow.com/homedetails/419-Lassen-Villa-Ct-Huffman-TX-77336/112161130_zpid/",
+    "Price (USD)": "635000",
+    "Number of Beds": "3",
+    "Number of Baths": "2",
+    "Square Footage": "3150",
+    "Home Type": "House for sale",
+    "Listing Agent/Company": "REALTY OF AMERICA, LLC",
+    "Property Image": "https://photos.zillowstatic.com/fp/9f3fce7a050a09b7a343887d221c4716-p_e.jpg"
+  },
+  {
+    "Property Address": "11030 Acanthus Ln, Houston, TX 77095",
+    "Property URL": "https://www.zillow.com/homedetails/11030-Acanthus-Ln-Houston-TX-77095/55481338_zpid/",
+    "Price (USD)": "410000",
+    "Number of Beds": "3",
+    "Number of Baths": "2",
+    "Square Footage": "2477",
+    "Home Type": "House for sale",
+    "Listing Agent/Company": "EXP REALTY, LLC",
+    "Property Image": "https://photos.zillowstatic.com/fp/aa880373f4cd996ce618ba0f947c7103-p_e.jpg"
+  },
+  {
+    "Property Address": "127 E Thornton Rd, Houston, TX 77022",
+    "Property URL": "https://www.zillow.com/homedetails/127-E-Thornton-Rd-Houston-TX-77022/28031490_zpid/",
+    "Price (USD)": "325000",
+    "Number of Beds": "3",
+    "Number of Baths": "2",
+    "Square Footage": "1703",
+    "Home Type": "House for sale",
+    "Listing Agent/Company": "REALTY OF AMERICA, LLC",
+    "Property Image": "https://photos.zillowstatic.com/fp/0c5ac8c64e0b620871f8b53cdc84dbb5-p_e.jpg"
+  },
+  {
+    "Property Address": "6519 Utah St, Houston, TX 77091",
+    "Property URL": "https://www.zillow.com/homedetails/6519-Utah-St-Houston-TX-77091/160217130_zpid/",
+    "Price (USD)": "228000",
+    "Number of Beds": "4",
+    "Number of Baths": "3",
+    "Square Footage": "2349",
+    "Home Type": "New construction",
+    "Listing Agent/Company": "Mayberry, EXIT REALTY 360",
+    "Property Image": "https://photos.zillowstatic.com/fp/1a112cccb3e481aa09cf5ef7ef9ac532-p_e.jpg"
+  }
+]

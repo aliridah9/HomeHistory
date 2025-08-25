@@ -1,0 +1,1026 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")  // pooled 6543, pgbouncer=true
+  directUrl = env("DIRECT_URL")    // direct 5432, for migrate/db push
+}
+
+
+// User and Authentication
+model User {
+  id               String            @id @default(uuid())
+  email            String?           @unique
+  phone            String?           @unique
+  firstName        String?
+  lastName         String?
+  name             String?
+  avatarUrl        String?
+  role             UserRole          @default(USER)
+  professionalType ProfessionalType?
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+
+  // Relations
+  properties        Property[]
+  aiUsageMetrics    AIUsageMetric[]
+  aiAnalysisResults AIAnalysisResult[]
+  aiBatchJobs       AIBatchJob[]
+  recommendations   PropertyRecommendation[]
+  oauthAccounts     OAuthAccount[]
+  providerAccounts  ProviderAccount[]
+
+  @@map("users")
+}
+
+// OAuth Provider Accounts
+model OAuthAccount {
+  id                String   @id @default(uuid())
+  provider          String   // 'google', 'facebook'
+  providerAccountId String   // ID from the OAuth provider
+  userId            String
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // OAuth provider data
+  accessToken       String?
+  refreshToken      String?
+  expiresAt         DateTime?
+  
+  // Profile data from provider
+  providerEmail     String?
+  providerName      String?
+  providerAvatar    String?
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([provider, providerAccountId])
+  @@unique([provider, userId])
+  @@index([userId])
+  @@index([provider])
+  @@map("oauth_accounts")
+}
+
+/// OAuth/Social auth accounts (new canonical table)
+model ProviderAccount {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  provider   String
+  providerId String
+  email      String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([provider, providerId])
+  @@index([email])
+  @@map("provider_accounts")
+}
+
+enum ProfessionalType {
+  AGENT
+  LANDLORD
+  LENDER
+  CONTRACTOR
+}
+
+enum UserRole {
+  USER
+  ADMIN
+}
+
+// Property - Core entity
+model Property {
+  id        String @id @default(uuid())
+  address   String
+  city      String
+  state     String
+  zipCode   String
+  country   String @default("US")
+  latitude  Float?
+  longitude Float?
+
+  // Property details
+  yearBuilt    Int?
+  squareFeet   Int?
+  lotSize      Float?
+  bedrooms     Int?
+  bathrooms    Float?
+  propertyType PropertyType?
+  price        Float?
+  metadata     Json?
+
+  // Ownership
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  reports      Report[]
+  rawDocuments RawDocument[]
+  dataSources  PropertyDataSource[]
+
+  // AI Relations
+  embedding         PropertyEmbedding?
+  aiUsageMetrics    AIUsageMetric[]
+  aiAnalysisResults AIAnalysisResult[]
+  aiScore           PropertyAIScore?
+  scoreHistory      PropertyScoreHistory[]
+
+  // Recommendation Relations
+  sourceRecommendations      PropertyRecommendation[] @relation("SourceProperty")
+  recommendedRecommendations PropertyRecommendation[] @relation("RecommendedProperty")
+
+  @@index([userId])
+  @@index([latitude, longitude])
+  @@map("properties")
+}
+
+enum PropertyType {
+  SINGLE_FAMILY
+  MULTI_FAMILY
+  CONDO
+  TOWNHOUSE
+  APARTMENT
+  COMMERCIAL
+  LAND
+  OTHER
+}
+
+// Raw documents uploaded or fetched
+model RawDocument {
+  id            String @id @default(uuid())
+  type          String // 'permit', 'inspection', 'insurance', 'tax', etc.
+  source        String // 'upload', 'zillow', 'county', etc.
+  fileUrl       String
+  extractedText Json? // Extracted text and metadata from OCR/parsing
+
+  // Optional property association
+  propertyId String?
+  property   Property? @relation(fields: [propertyId], references: [id])
+
+  status    ReportStatus
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  // AI Relations
+  aiAnalysisResults AIAnalysisResult[]
+  aiAnalysis        DocumentAIAnalysis?
+
+  @@index([propertyId])
+  @@index([type])
+  @@index([status])
+  @@map("raw_documents")
+}
+
+// External data sources configuration
+model DataSource {
+  id         String    @id @default(uuid())
+  name       String    @unique // 'zillow', 'google_maps', 'county_records', etc.
+  apiUrl     String
+  apiKey     String? // Encrypted API key if needed per-source
+  lastSynced DateTime?
+  isActive   Boolean   @default(true)
+
+  // Configuration
+  syncInterval Int? // Hours between syncs
+  config       Json? // Source-specific configuration
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  properties PropertyDataSource[]
+
+  @@map("data_sources")
+}
+
+// Many-to-many relation between Property and DataSource
+model PropertyDataSource {
+  id           String     @id @default(uuid())
+  propertyId   String
+  property     Property   @relation(fields: [propertyId], references: [id])
+  dataSourceId String
+  dataSource   DataSource @relation(fields: [dataSourceId], references: [id])
+
+  // Sync metadata
+  lastSynced DateTime?
+  syncStatus SyncStatus @default(PENDING)
+  syncData   Json? // Cached data from this source
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([propertyId, dataSourceId])
+  @@index([propertyId])
+  @@index([dataSourceId])
+  @@map("property_data_sources")
+}
+
+enum SyncStatus {
+  PENDING
+  SYNCING
+  SUCCESS
+  FAILED
+}
+
+// Generated reports for properties
+model Report {
+  id         String   @id @default(uuid())
+  propertyId String
+  property   Property @relation(fields: [propertyId], references: [id])
+
+  // Report content
+  summary       String @db.Text
+  incidentsJson Json? // Historical incidents, repairs, damages
+  insuranceJson Json? // Insurance claims, coverage history
+
+  // AI-generated insights
+  aiInsights Json? // Risk scores, recommendations, etc.
+
+  status      ReportStatus @default(pending)
+  publishedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([propertyId])
+  @@index([status])
+  @@map("reports")
+}
+
+enum ReportStatus {
+  pending
+  verified
+  published
+}
+
+// Audit log for tracking changes
+model AuditLog {
+  id         String  @id @default(uuid())
+  userId     String?
+  action     String
+  entityType String
+  entityId   String
+  changes    Json?
+  metadata   Json?
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([entityType, entityId])
+  @@map("audit_logs")
+}
+
+// ============================================
+// AI MODULE MODELS
+// ============================================
+
+// AI Cache for storing AI responses and computations
+model AICache {
+  id        String @id @default(uuid())
+  cacheKey  String
+  hashedKey String @unique
+
+  // Cache content
+  data       Json
+  dataType   String // 'embedding', 'completion', 'analysis', etc.
+  compressed Boolean @default(false)
+
+  // Cache metadata
+  tags String[] @default([])
+  size Int      @default(0)
+  hits Int      @default(0)
+
+  // Expiration
+  ttl       Int      @default(3600) // seconds
+  expiresAt DateTime
+
+  // Timestamps
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  lastAccessedAt DateTime?
+
+  @@index([hashedKey])
+  @@index([dataType])
+  @@index([expiresAt])
+  @@index([tags])
+  @@map("AICache")
+}
+
+// Property embeddings for semantic search and recommendations
+model PropertyEmbedding {
+  id         String   @id @default(cuid())
+  propertyId String   @unique @map("propertyId")
+  property   Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  content   String
+  // stores number[] as JSON for Prisma client access
+  embedding Json
+  model     String                @default("text-embedding-3-small")
+  dimensions Int
+
+  metadata Json?    @default("{}")
+  tokens   Int      @default(0)
+  cost     Decimal? @db.Decimal(10, 4)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([propertyId])
+  @@index([model])
+  @@index([createdAt])
+  @@map("PropertyEmbedding")
+}
+
+// AI usage metrics for cost tracking and analytics
+model AIUsageMetric {
+  id        String @id @default(uuid())
+  requestId String @unique
+
+  // User and context
+  userId     String?
+  user       User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+  propertyId String?
+  property   Property? @relation(fields: [propertyId], references: [id], onDelete: SetNull)
+
+  // Model and operation
+  model     String
+  operation String
+
+  // Token usage
+  promptTokens     Int @default(0)
+  completionTokens Int @default(0)
+  totalTokens      Int @default(0)
+
+  // Cost and performance
+  cost    Decimal @db.Decimal(10, 4)
+  latency Int   @default(0) // milliseconds
+
+  // Status and metadata
+  status    String  @default("success")
+  errorCode String?
+  metadata  Json    @default("{}")
+
+  // Timestamp
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([propertyId])
+  @@index([model])
+  @@index([operation])
+  @@index([createdAt])
+  @@map("AIUsageMetric")
+}
+
+// AI analysis results for caching complex analyses
+model AIAnalysisResult {
+  id        String @id @default(uuid())
+  requestId String @unique
+
+  // Context
+  userId     String?
+  user       User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
+  propertyId String?
+  property   Property?    @relation(fields: [propertyId], references: [id], onDelete: SetNull)
+  documentId String?
+  document   RawDocument? @relation(fields: [documentId], references: [id], onDelete: SetNull)
+
+  // Analysis details
+  analysisType String
+  model        String
+
+  // Results
+  summary        String?
+  structuredData Json    @default("{}")
+  confidence     Float   @default(0)
+ 
+  // Metadata
+  processingTime Int     @default(0)
+  cached         Boolean @default(false)
+  metadata       Json    @default("{}")
+
+  // Timestamps
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  expiresAt DateTime?
+
+  @@index([userId])
+  @@index([propertyId])
+  @@index([documentId])
+  @@index([analysisType])
+  @@index([createdAt])
+  @@index([expiresAt])
+  @@map("AIAnalysisResult")
+}
+
+// AI batch processing jobs
+model AIBatchJob {
+  id    String @id @default(uuid())
+  jobId String @unique
+
+  // Job details
+  jobType String
+  status  AIJobStatus @default(PENDING)
+
+  // User context
+  userId String?
+  user   User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  // Job data
+  items    Json @default("[]")
+  results  Json @default("[]")
+  progress Int  @default(0)
+
+  // Error handling
+  errorMessage String?
+  retryCount   Int     @default(0)
+
+  // Timestamps
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  startedAt   DateTime?
+  completedAt DateTime?
+
+  // Metadata
+  metadata Json @default("{}")
+
+  @@index([jobId])
+  @@index([userId])
+  @@index([status])
+  @@index([jobType])
+  @@index([createdAt])
+  @@map("AIBatchJob")
+}
+
+// Property AI scores for ranking and analysis (HomeHistory Score™)
+model PropertyAIScore {
+  id         String   @id @default(uuid())
+  propertyId String   @unique
+  property   Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  // HomeHistory Score™ breakdown
+  overallScore    Float @default(0) // 0-100 composite score
+  qualityScore    Float @default(0) // 0-100 quality score
+  safetyScore     Float @default(0) // 0-100 safety score
+  valueScore      Float @default(0) // 0-100 value score
+  locationScore   Float @default(0) // 0-100 location score
+  investmentScore Float @default(0) // 0-100 investment score
+
+  // Score metadata
+  confidence       Float   @default(0) // 0-1 confidence level
+  dataCompleteness Float   @default(0) // 0-1 data completeness
+  model            String // Scoring model version
+  methodology      Json    @default("{}") // Scoring methodology
+  factors          Json    @default("{}") // Detailed factor breakdown
+  explanation      String? // AI-generated explanation
+
+  // Scoring weights used
+  qualityWeight  Float @default(0.30)
+  safetyWeight   Float @default(0.25)
+  valueWeight    Float @default(0.25)
+  locationWeight Float @default(0.20)
+
+  // Timestamps
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  lastAnalyzedAt DateTime?
+
+  @@index([propertyId])
+  @@index([overallScore])
+  @@index([qualityScore])
+  @@index([safetyScore])
+  @@index([valueScore])
+  @@index([locationScore])
+  @@index([lastAnalyzedAt])
+  @@index([confidence])
+  @@map("PropertyAIScore")
+}
+
+// Property score history for tracking changes over time
+model PropertyScoreHistory {
+  id         String   @id @default(uuid())
+  propertyId String
+  property   Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  // Score at this point in time
+  overallScore  Float
+  qualityScore  Float
+  safetyScore   Float
+  valueScore    Float
+  locationScore Float
+
+  // Change tracking
+  previousScore Float?
+  scoreChange   Float? // Difference from previous score
+  changeReason  String? // Why the score changed
+
+  // Metadata
+  confidence       Float
+  dataCompleteness Float
+  model            String
+  factors          Json   @default("{}")
+
+  // Timestamps
+  calculatedAt DateTime @default(now())
+
+  @@index([propertyId])
+  @@index([calculatedAt])
+  @@index([overallScore])
+  @@map("property_score_history")
+}
+
+// Document AI analysis results
+model DocumentAIAnalysis {
+  id         String      @id @default(uuid())
+  documentId String      @unique
+  document   RawDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  // Analysis results
+  extractedText  String?
+  structuredData Json    @default("{}")
+  issues         Json    @default("[]")
+  compliance     Json    @default("[]")
+  entities       Json    @default("[]")
+
+  // Analysis metadata
+  confidence     Float  @default(0)
+  model          String @default("gpt-4")
+  processingTime Int    @default(0)
+  startedAt      DateTime?
+  completedAt    DateTime?
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([confidence])
+  @@map("DocumentAIAnalysis")
+}
+
+// AI model configurations and capabilities
+model AIModelConfig {
+  id       String @id @default(uuid())
+  name     String @unique
+  provider String // 'openai', 'anthropic', etc.
+
+  // Model specifications
+  maxTokens         Int
+  contextWindow     Int
+  supportsFunctions Boolean @default(false)
+  supportsVision    Boolean @default(false)
+
+  // Pricing (per 1K tokens)
+  inputCostPer1k  Float
+  outputCostPer1k Float
+
+  // Configuration
+  isActive        Boolean @default(true)
+  defaultSettings Json    @default("{}")
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([name])
+  @@index([provider])
+  @@index([isActive])
+  @@map("ai_model_configs")
+}
+
+// ============================================
+// AI ENUMS
+// ============================================
+
+enum AIJobStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+// Notification priority levels
+enum NotificationPriority {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+// Parsing job status
+enum ParsingStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+// ============================================
+// RECOMMENDATION SYSTEM MODELS
+// ============================================
+
+// Property recommendation analytics and feedback
+model PropertyRecommendation {
+  id                    String   @id @default(uuid())
+  sourcePropertyId      String
+  sourceProperty        Property @relation("SourceProperty", fields: [sourcePropertyId], references: [id], onDelete: Cascade)
+  recommendedPropertyId String
+  recommendedProperty   Property @relation("RecommendedProperty", fields: [recommendedPropertyId], references: [id], onDelete: Cascade)
+
+  // Recommendation metadata
+  similarityScore    Float  @default(0) // 0-1 similarity score
+  recommendationRank Int    @default(0) // Position in recommendation list
+  algorithm          String @default("v1.0") // Algorithm version used
+
+  // User interaction
+  userId    String?
+  user      User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
+  viewed    Boolean @default(false)
+  clicked   Boolean @default(false)
+  contacted Boolean @default(false) // User contacted about property
+
+  // Feedback
+  rating   Int? // 1-5 star rating
+  helpful  Boolean? // Was recommendation helpful
+  feedback String? // User feedback text
+  issues   Json     @default("[]") // Array of issue tags
+
+  // Context
+  searchContext   Json   @default("{}") // Search parameters used
+  distanceKm      Float? // Distance between properties
+  priceDifference Float? // Price difference
+
+  // Timestamps
+  createdAt  DateTime  @default(now())
+  viewedAt   DateTime?
+  clickedAt  DateTime?
+  feedbackAt DateTime?
+
+  @@unique([sourcePropertyId, recommendedPropertyId, userId])
+  @@index([sourcePropertyId])
+  @@index([recommendedPropertyId])
+  @@index([userId])
+  @@index([similarityScore])
+  @@index([createdAt])
+  @@index([viewed, clicked])
+  @@map("property_recommendations")
+}
+
+// Recommendation system performance metrics
+model RecommendationMetric {
+  id String @id @default(uuid())
+
+  // Metric identification
+  metricType  String // 'similarity', 'click_through', 'conversion', etc.
+  timeframe   String // 'hour', 'day', 'week', 'month'
+  periodStart DateTime
+  periodEnd   DateTime
+
+  // Aggregated metrics
+  totalRecommendations Int @default(0)
+  totalViews           Int @default(0)
+  totalClicks          Int @default(0)
+  totalFeedback        Int @default(0)
+
+  // Performance metrics
+  averageSimilarity Float @default(0)
+  clickThroughRate  Float @default(0)
+  conversionRate    Float @default(0)
+  userSatisfaction  Float @default(0) // Average rating
+
+  // System performance
+  averageResponseTime Float @default(0) // milliseconds
+  cacheHitRate        Float @default(0) // 0-1
+  embeddingCoverage   Float @default(0) // % properties with embeddings
+
+  // Segmentation
+  city         String?
+  state        String?
+  propertyType PropertyType?
+  priceRange   String? // 'under_300k', '300k_500k', etc.
+
+  // Metadata
+  metadata Json @default("{}")
+
+  // Timestamps
+  createdAt DateTime @default(now())
+
+  @@unique([metricType, timeframe, periodStart, city, state, propertyType])
+  @@index([metricType])
+  @@index([timeframe])
+  @@index([periodStart, periodEnd])
+  @@index([city, state])
+  @@index([propertyType])
+  @@map("recommendation_metrics")
+}
+
+// ============================================
+// UPDATED RELATIONS
+// ============================================
+
+// newly added 
+model MaintenanceRecord {
+  id                 String    @id
+  propertyId         String    @map("property_id")
+  title              String
+  description        String?
+  maintenanceType    String    @map("maintenance_type")
+  status             String    @default("SCHEDULED")
+  priority           String    @default("MEDIUM")
+  scheduledDate      DateTime? @map("scheduled_date")
+  completedDate      DateTime? @map("completed_date")
+  estimatedCost      Decimal?  @map("estimated_cost") @db.Decimal(10, 2)
+  actualCost         Decimal?  @map("actual_cost") @db.Decimal(10, 2)
+  notes              String?
+  recurringFrequency String?   @map("recurring_frequency")
+  contractorName     String?   @map("contractor_name")
+  contractorContact  String?   @map("contractor_contact")
+  createdBy          String    @map("created_by")
+  createdAt          DateTime  @default(now()) @map("created_at")
+  updatedAt          DateTime  @default(now()) @map("updated_at")
+
+  @@unique([propertyId, createdAt], name: "maintenance_records_property_created_idx")
+  @@map("maintenance_records")
+}
+
+model NotificationPreference {
+  id                        String               @id @default(cuid())
+  userId                    String               @map("user_id")
+  createdAt                 DateTime             @default(now()) @map("created_at")
+  updatedAt                 DateTime             @default(now()) @map("updated_at")
+  emailEnabled              Boolean              @default(true) @map("email_enabled")
+  emailMaintenanceReminders Boolean              @default(true) @map("email_maintenance_reminders")
+  emailReportReady          Boolean              @default(true) @map("email_report_ready")
+  emailDocumentProcessed    Boolean              @default(true) @map("email_document_processed")
+  emailWeeklySummary        Boolean              @default(true) @map("email_weekly_summary")
+  pushEnabled               Boolean              @default(true) @map("push_enabled")
+  pushMaintenanceReminders  Boolean              @default(true) @map("push_maintenance_reminders")
+  quietHoursStart           Unsupported("time")? @map("quiet_hours_start")
+  quietHoursEnd             Unsupported("time")? @map("quiet_hours_end")
+  pushReportReady           Boolean              @default(true) @map("push_report_ready")
+  pushDocumentProcessed     Boolean              @default(false) @map("push_document_processed")
+  inAppEnabled              Boolean              @default(true) @map("in_app_enabled")
+  inAppMaintenanceReminders Boolean              @default(true) @map("in_app_maintenance_reminders")
+  inAppReportReady          Boolean              @default(true) @map("in_app_report_ready")
+  inAppDocumentProcessed    Boolean              @default(true) @map("in_app_document_processed")
+  digestFrequency           String?              @default("weekly") @map("digest_frequency")
+  timezone                  String?              @default("UTC")
+  smsEnabled                Boolean              @default(false) // added
+  // App-level preferences used by API service
+  propertyUpdates           Boolean              @default(true)
+  documentProcessing        Boolean              @default(true)
+  searchResults             Boolean              @default(false)
+  systemAlerts              Boolean              @default(true)
+  maintenanceReminders      Boolean              @default(true)
+  dailyDigest               Boolean              @default(false)
+  weeklySummary             Boolean              @default(true)
+
+  @@unique([userId], name: "notification_preferences_user_idx")
+  @@map("notification_preferences")
+}
+
+model Notification {
+  id           String    @id @default(uuid())
+  userId       String    @map("user_id")
+  type         String
+  title        String
+  message      String
+  metadata     Json?
+  read         Boolean   @default(false)
+  readAt       DateTime? @map("read_at")
+  dismissed    Boolean   @default(false)
+  channels     String[]  @db.Text
+  entityType   String?   @map("entity_type")
+  entityId     String?   @map("entity_id")
+  scheduledFor DateTime? @map("scheduled_for")
+  sentAt       DateTime? @map("sent_at")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @default(now()) @map("updated_at")
+  priority     NotificationPriority @default(MEDIUM)
+
+  @@map("notifications")
+}
+
+model PushSubscription {
+  id        String   @id
+  userId    String   @map("user_id")
+  endpoint  String
+  p256dhKey String   @map("p256dh_key")
+  authKey   String   @map("auth_key")
+  userAgent String?  @map("user_agent")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @default(now()) @map("updated_at")
+
+  @@unique([endpoint], name: "push_subscriptions_endpoint_idx")
+  @@map("push_subscriptions")
+}
+
+model NotificationTemplate {
+  id          String   @id @default(uuid())
+  name        String
+  description String
+  type        String
+  emailSubject String?
+  emailBody    String
+  pushTitle    String?
+  pushBody     String?
+  smsMessage   String?
+  channels    String[] @db.Text
+  variables   String[] @db.Text
+  active      Boolean  @default(true)
+  createdBy   String?  @map("created_by")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @default(now()) @map("updated_at")
+
+  @@map("notification_templates")
+}
+
+model PropertyScore {
+  id            String   @id
+  propertyId    String   @map("property_id")
+  qualityScore  Decimal  @map("quality_score") @db.Decimal(3, 1)
+  safetyScore   Decimal  @map("safety_score") @db.Decimal(3, 1)
+  valueScore    Decimal  @map("value_score") @db.Decimal(3, 1)
+  locationScore Decimal  @map("location_score") @db.Decimal(3, 1)
+  overallScore  Decimal  @map("overall_score") @db.Decimal(3, 1)
+  explanation   String
+  metadata      Json?
+  calculatedAt  DateTime @default(now()) @map("calculated_at")
+
+  @@unique([propertyId, calculatedAt], name: "property_scores_property_calculated_idx")
+  @@index([propertyId], name: "idx_property_scores_property_id")
+  @@map("property_scores")
+}
+
+
+// Add AI relations to existing models
+
+// Parsing jobs queue used by parsing processor
+model ParsingJob {
+  id          String        @id @default(uuid())
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  type        String
+  status      ParsingStatus @default(PENDING)
+  userId      String?
+  documentId  String?
+  priority    Int           @default(0)
+  progress    Int           @default(0)
+  data        Json?
+  result      Json?
+  error       String?
+  startedAt   DateTime?
+  completedAt DateTime?
+
+  @@index([status, priority])
+  @@map("ParsingJob")
+}
+
+// ============================================
+// SCRAPED DATA MODELS - Real Estate Portals
+// ============================================
+
+// Portal configuration for scraped data sources
+model Portal {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique // 'zillow' | 'redfin' | 'trulia' | 'century21' | 'loopnet' | 'bizbuysell'
+  listings  Listing[]
+  businesses BusinessListing[]
+  createdAt DateTime @default(now())
+  
+  @@map("portals")
+}
+
+// Residential property listings from scraped data
+model Listing {
+  id             String   @id @default(cuid())
+  portalId       Int
+  portal         Portal   @relation(fields: [portalId], references: [id])
+
+  // Identity
+  sourceUrl      String   @unique
+  sourceId       String?  // if we can derive (e.g., zpid)
+  propertyType   String?  // e.g., "House", "Condo", "Lot/Land", "Apartment"
+  status         String?
+
+  // Address
+  addressLine1   String?
+  city           String?
+  state          String?
+  zipcode        String?
+  fullAddressRaw String?  // keep original combined string as fallback
+
+  // Numbers
+  priceUsd       Int?
+  beds           Float?
+  baths          Float?
+  livingAreaSqft Int?
+  lotSizeSqft    Float?
+  lotSizeAcres   Float?
+  yearBuilt      Int?
+  daysOnMarket   Int?
+  lastSoldPrice  Int?
+  propertyTaxRate Float?
+
+  // Brokerage / Agent
+  listingAgent   String?
+  brokerageName  String?
+
+  // Media
+  thumbnailUrl   String?
+  images         ListingImage[]
+
+  // Extras
+  virtualTourUrl String?
+  isZillowOwned  Boolean?
+  description    String?  @db.Text
+
+  // Raw payload for audit/debug
+  raw            Json
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([city, state, zipcode])
+  @@index([portalId, propertyType])
+  @@map("listings")
+}
+
+// Images for residential listings
+model ListingImage {
+  id        String  @id @default(cuid())
+  listingId String
+  listing   Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  url       String  @db.Text
+  
+  @@map("listing_images")
+}
+
+// Business listings from scraped data
+model BusinessListing {
+  id            String  @id @default(cuid())
+  portalId      Int
+  portal        Portal @relation(fields: [portalId], references: [id])
+
+  // Identity
+  title         String?
+  businessName  String?
+  sourceUrl     String   @unique
+  location      String?
+
+  // Financials
+  priceUsd      Int?
+  revenueUsd    Int?
+  ebitdaUsd     Int?
+  cashflowUsd   Int?
+
+  // Business details
+  employees     Int?
+  yearEstablished Int?
+  state         String?
+  sellerType    String?
+
+  // Intermediary info
+  intermediaryFirm  String?
+  intermediaryPhone String?
+  intermediaryName  String?
+
+  // Additional info
+  inventoryRaw     String?  @db.Text
+  reasonForSelling String?  @db.Text
+  description      String?  @db.Text
+  dateAdded        String?
+
+  // Media
+  images        BusinessImage[]
+  
+  // Raw payload
+  raw           Json
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  @@index([portalId])
+  @@index([state])
+  @@map("business_listings")
+}
+
+// Images for business listings
+model BusinessImage {
+  id         String  @id @default(cuid())
+  businessId String
+  business   BusinessListing @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  url        String  @db.Text
+  
+  @@map("business_images")
+}
