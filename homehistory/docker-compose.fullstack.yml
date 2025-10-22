@@ -1,0 +1,331 @@
+# HomeHistory Full-Stack Application - Docker Compose
+# Complete development and production environment setup
+
+version: '3.8'
+
+services:
+  # =============================================================================
+  # Backend API Service (NestJS)
+  # =============================================================================
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.fullstack
+      target: backend
+      args:
+        BUILD_DATE: ${BUILD_DATE:-}
+        VCS_REF: ${VCS_REF:-}
+        VERSION: ${VERSION:-latest}
+    image: homehistory-api:latest
+    container_name: homehistory-backend
+    restart: unless-stopped
+    environment:
+      # Application
+      - NODE_ENV=${NODE_ENV:-production}
+      - PORT=3001
+      
+      # Database (connect to postgres service)
+      - DATABASE_URL=postgresql://postgres:${POSTGRES_PASSWORD:-password}@postgres:5432/${POSTGRES_DB:-homehistory}
+      - DIRECT_URL=postgresql://postgres:${POSTGRES_PASSWORD:-password}@postgres:5432/${POSTGRES_DB:-homehistory}
+      
+      # Supabase
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_SERVICE_KEY=${SUPABASE_SERVICE_KEY}
+      - SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}
+      
+      # JWT
+      - JWT_ACCESS_SECRET=${JWT_ACCESS_SECRET:-your-jwt-access-secret-key-min-32-chars}
+      - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET:-your-jwt-refresh-secret-key-min-32-chars}
+      - JWT_ACCESS_EXPIRES=${JWT_ACCESS_EXPIRES:-15m}
+      - JWT_REFRESH_EXPIRES=${JWT_REFRESH_EXPIRES:-7d}
+      
+      # URLs
+      - FRONTEND_URL=${FRONTEND_URL:-http://localhost:3000}
+      - API_BASE_URL=${API_BASE_URL:-http://localhost:3001}
+      - CORS_ORIGIN=${CORS_ORIGIN:-http://localhost:3000}
+      
+      # External APIs (optional)
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - ZILLOW_API_KEY=${ZILLOW_API_KEY:-}
+      - GOOGLE_MAPS_API_KEY=${GOOGLE_MAPS_API_KEY:-}
+      
+      # OAuth (optional)
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID:-}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET:-}
+      - GOOGLE_CALLBACK_URL=${GOOGLE_CALLBACK_URL:-http://localhost:3001/auth/google/callback}
+      
+      - FACEBOOK_APP_ID=${FACEBOOK_APP_ID:-}
+      - FACEBOOK_APP_SECRET=${FACEBOOK_APP_SECRET:-}
+      - FACEBOOK_CALLBACK_URL=${FACEBOOK_CALLBACK_URL:-http://localhost:3001/auth/facebook/callback}
+      
+      # Error monitoring (optional)
+      - SENTRY_DSN=${SENTRY_DSN:-}
+      
+      # Scraped data
+      - HH_SCRAPED_DATA_DIR=/app/scraped-data
+    volumes:
+      - ./homehistory/scraped-data:/app/scraped-data:ro
+      - ./logs/backend:/app/homehistory/apps/api/logs
+    ports:
+      - "${BACKEND_PORT:-3001}:3001"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - homehistory-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  # =============================================================================
+  # Frontend Web Service (React + Nginx)
+  # =============================================================================
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.fullstack
+      target: frontend
+      args:
+        BUILD_DATE: ${BUILD_DATE:-}
+        VCS_REF: ${VCS_REF:-}
+        VERSION: ${VERSION:-latest}
+    image: homehistory-web:latest
+    container_name: homehistory-frontend
+    restart: unless-stopped
+    ports:
+      - "${FRONTEND_PORT:-3000}:3000"
+    depends_on:
+      - backend
+    networks:
+      - homehistory-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  # =============================================================================
+  # Development Services
+  # =============================================================================
+  dev:
+    build:
+      context: .
+      dockerfile: Dockerfile.fullstack
+      target: development
+    image: homehistory:dev
+    container_name: homehistory-dev
+    profiles: ["dev"]
+    environment:
+      - NODE_ENV=development
+      - DATABASE_URL=postgresql://postgres:${POSTGRES_PASSWORD:-password}@postgres:5432/${POSTGRES_DB:-homehistory}
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}
+      - SUPABASE_SERVICE_KEY=${SUPABASE_SERVICE_KEY}
+      - JWT_ACCESS_SECRET=${JWT_ACCESS_SECRET:-dev-jwt-access-secret-key-min-32-chars}
+      - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET:-dev-jwt-refresh-secret-key-min-32-chars}
+    volumes:
+      - ./homehistory:/app/homehistory
+      - ./logs:/app/logs
+      - /app/homehistory/node_modules
+      - /app/homehistory/apps/api/node_modules
+      - /app/homehistory/apps/web/node_modules
+    ports:
+      - "3000:3000"  # Frontend dev server
+      - "3001:3001"  # Backend dev server
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - homehistory-network
+    command: ["pnpm", "dev"]
+
+  # =============================================================================
+  # PostgreSQL Database
+  # =============================================================================
+  postgres:
+    image: postgres:15-alpine
+    container_name: homehistory-postgres
+    restart: unless-stopped
+    environment:
+      - POSTGRES_DB=${POSTGRES_DB:-homehistory}
+      - POSTGRES_USER=${POSTGRES_USER:-postgres}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-password}
+      - POSTGRES_INITDB_ARGS=--auth-host=scram-sha-256
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker/postgres/init:/docker-entrypoint-initdb.d:ro
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    networks:
+      - homehistory-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-homehistory}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # =============================================================================
+  # Redis Cache (for sessions, caching, queues)
+  # =============================================================================
+  redis:
+    image: redis:7-alpine
+    container_name: homehistory-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-password}
+    environment:
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-password}
+    volumes:
+      - redis_data:/data
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    networks:
+      - homehistory-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "--no-auth-warning", "-a", "${REDIS_PASSWORD:-password}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # =============================================================================
+  # Database Administration (Optional)
+  # =============================================================================
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: homehistory-pgadmin
+    profiles: ["admin"]
+    restart: unless-stopped
+    environment:
+      - PGADMIN_DEFAULT_EMAIL=${PGADMIN_EMAIL:-admin@homehistory.com}
+      - PGADMIN_DEFAULT_PASSWORD=${PGADMIN_PASSWORD:-admin}
+      - PGADMIN_CONFIG_SERVER_MODE=False
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    ports:
+      - "${PGADMIN_PORT:-8080}:80"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - homehistory-network
+
+  # =============================================================================
+  # Monitoring Services (Optional)
+  # =============================================================================
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: homehistory-prometheus
+    profiles: ["monitoring"]
+    restart: unless-stopped
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=200h'
+      - '--web.enable-lifecycle'
+    ports:
+      - "${PROMETHEUS_PORT:-9090}:9090"
+    volumes:
+      - ./docker/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    networks:
+      - homehistory-network
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: homehistory-grafana
+    profiles: ["monitoring"]
+    restart: unless-stopped
+    ports:
+      - "${GRAFANA_PORT:-3001}:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin}
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./docker/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - ./docker/grafana/provisioning:/etc/grafana/provisioning:ro
+    depends_on:
+      - prometheus
+    networks:
+      - homehistory-network
+
+  # =============================================================================
+  # Reverse Proxy (Optional - for production)
+  # =============================================================================
+  nginx:
+    image: nginx:alpine
+    container_name: homehistory-nginx
+    profiles: ["proxy"]
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./docker/nginx/nginx-proxy.conf:/etc/nginx/nginx.conf:ro
+      - ./docker/nginx/ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - frontend
+      - backend
+    networks:
+      - homehistory-network
+
+# =============================================================================
+# Networks
+# =============================================================================
+networks:
+  homehistory-network:
+    driver: bridge
+    name: homehistory-network
+
+# =============================================================================
+# Volumes
+# =============================================================================
+volumes:
+  postgres_data:
+    name: homehistory-postgres-data
+  redis_data:
+    name: homehistory-redis-data
+  pgadmin_data:
+    name: homehistory-pgadmin-data
+  prometheus_data:
+    name: homehistory-prometheus-data
+  grafana_data:
+    name: homehistory-grafana-data
+
+# =============================================================================
+# Usage Examples:
+# =============================================================================
+
+# Production deployment:
+# docker-compose -f docker-compose.fullstack.yml up -d backend frontend postgres redis
+
+# Development mode:
+# docker-compose -f docker-compose.fullstack.yml --profile dev up -d
+
+# With admin tools:
+# docker-compose -f docker-compose.fullstack.yml --profile admin up -d
+
+# With monitoring:
+# docker-compose -f docker-compose.fullstack.yml --profile monitoring up -d
+
+# Full stack with all services:
+# docker-compose -f docker-compose.fullstack.yml --profile dev --profile admin --profile monitoring up -d
+
+# View logs:
+# docker-compose -f docker-compose.fullstack.yml logs -f backend
+# docker-compose -f docker-compose.fullstack.yml logs -f frontend
+
+# Run database migrations:
+# docker-compose -f docker-compose.fullstack.yml exec backend pnpm --filter @homehistory/database prisma migrate deploy
+
+# Access development container:
+# docker-compose -f docker-compose.fullstack.yml --profile dev exec dev bash
+
+# Cleanup:
+# docker-compose -f docker-compose.fullstack.yml down -v
