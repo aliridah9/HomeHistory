@@ -16,7 +16,7 @@ export default function Hero() {
             List. Search. Verify. Own.
           </h1>
           <p className="text-[32px] text-gray-900 leading-7 font-semibold">
-            Buy, Rent, & Sell, Land, Homes, Business & More
+          Homes, Land, and Business Deals, All in One Place.
           </p>
         </div>
         <Link

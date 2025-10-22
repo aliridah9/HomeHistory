@@ -17,6 +17,8 @@ import { Input } from '@/components/ui/input';
 import { Container } from './Layout';
 import { useUser, useAuthStore } from '@/stores/auth.store';
 import { useUIStore } from '@/stores/ui.store';
+import { useNotifications } from '@/hooks/useNotifications';
+import { NotificationCenter } from '@/components/notifications/NotificationCenter';
 import { cn } from '@/lib/utils';
 
 export function Header() {
@@ -25,6 +27,13 @@ export function Header() {
   const user = useUser();
   const { logout } = useAuthStore();
   const { toggleSidebar, isSidebarOpen } = useUIStore();
+  const {
+    notifications,
+    markAsRead,
+    markAllAsRead,
+    deleteNotification,
+    clearAll,
+  } = useNotifications();
 
   const [searchQuery, setSearchQuery] = React.useState('');
   const [isUserMenuOpen, setIsUserMenuOpen] = React.useState(false);
@@ -130,10 +139,13 @@ export function Header() {
             {user ? (
               <>
                 {/* Notifications */}
-                <Button variant="ghost" size="sm" className="relative">
-                  <Bell className="h-5 w-5" />
-                  <span className="absolute -top-1 -right-1 h-3 w-3 rounded-full bg-danger text-xs"></span>
-                </Button>
+                <NotificationCenter
+                  notifications={notifications}
+                  onMarkAsRead={markAsRead}
+                  onMarkAllAsRead={markAllAsRead}
+                  onDeleteNotification={deleteNotification}
+                  onClearAll={clearAll}
+                />
 
                 {/* User Menu */}
                 <div className="relative">

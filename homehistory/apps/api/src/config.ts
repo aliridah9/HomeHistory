@@ -101,35 +101,35 @@ function validateConfig(): Config {
       url: getEnvVar('DATABASE_URL'),
     },
     openai: {
-      apiKey: getEnvVar('OPENAI_API_KEY'),
+      apiKey: getEnvVar('OPENAI_API_KEY', false), // Optional for development
     },
     externalApis: {
       zillow: {
-        apiKey: getEnvVar('ZILLOW_API_KEY'),
+        apiKey: getEnvVar('ZILLOW_API_KEY', false), // Optional for development
       },
       googleMaps: {
-        apiKey: getEnvVar('GOOGLE_MAPS_API_KEY'),
+        apiKey: getEnvVar('GOOGLE_MAPS_API_KEY', false), // Optional for development
       },
       countyRecords: {
-        apiKey: getEnvVar('COUNTY_RECORDS_API_KEY'),
+        apiKey: getEnvVar('COUNTY_RECORDS_API_KEY', false), // Optional for development
       },
       taxAssessor: {
-        apiKey: getEnvVar('TAX_ASSESSOR_API_KEY'),
+        apiKey: getEnvVar('TAX_ASSESSOR_API_KEY', false), // Optional for development
       },
       permitData: {
-        apiKey: getEnvVar('PERMIT_DATA_API_KEY'),
+        apiKey: getEnvVar('PERMIT_DATA_API_KEY', false), // Optional for development
       },
     },
     oauth: {
       google: {
-        clientId: getEnvVar('GOOGLE_CLIENT_ID'),
-        clientSecret: getEnvVar('GOOGLE_CLIENT_SECRET'),
-        callbackUrl: getEnvVar('GOOGLE_CALLBACK_URL'),
+        clientId: getEnvVar('GOOGLE_CLIENT_ID', false), // Optional for development
+        clientSecret: getEnvVar('GOOGLE_CLIENT_SECRET', false), // Optional for development
+        callbackUrl: getEnvVar('GOOGLE_CALLBACK_URL', false), // Optional for development
       },
       facebook: {
-        appId: getEnvVar('FACEBOOK_APP_ID'),
-        appSecret: getEnvVar('FACEBOOK_APP_SECRET'),
-        callbackUrl: getEnvVar('FACEBOOK_CALLBACK_URL'),
+        appId: getEnvVar('FACEBOOK_APP_ID', false), // Optional for development
+        appSecret: getEnvVar('FACEBOOK_APP_SECRET', false), // Optional for development
+        callbackUrl: getEnvVar('FACEBOOK_CALLBACK_URL', false), // Optional for development
       },
     },
     jwt: {
