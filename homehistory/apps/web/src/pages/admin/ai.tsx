@@ -2,11 +2,13 @@ import * as React from "react"
 import { Helmet } from "react-helmet-async"
 import { 
   Brain, DollarSign, Clock, TrendingUp, BarChart3, PieChart, 
-  Sparkles, AlertTriangle, CheckCircle, Activity, Zap, Search
+  Sparkles, AlertTriangle, CheckCircle, Activity, Zap, Search, RefreshCw
 } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Container } from "@/components/layout/Layout"
+import { LoadingSpinner } from "@/components/ui/loading-spinner"
+import { adminAiApi } from "@/lib/api"
 import { cn } from "@/lib/utils"
 
 interface AIMetric {
@@ -173,6 +175,61 @@ function AIMetricCard({ metric }: { metric: AIMetric }) {
 }
 
 export default function AdminAI() {
+  const [loading, setLoading] = React.useState(true)
+  const [metrics, setMetrics] = React.useState<any>(null)
+  const [dashboard, setDashboard] = React.useState<any>(null)
+  const [error, setError] = React.useState<string | null>(null)
+
+  const fetchDashboardData = async () => {
+    try {
+      setLoading(true)
+      setError(null)
+      
+      // Fetch dashboard data and metrics
+      const [dashboardResponse, metricsResponse] = await Promise.all([
+        adminAiApi.getDashboard().catch(() => ({ data: null })),
+        adminAiApi.getMetrics({ timeframe: 'week' }).catch(() => ({ data: null }))
+      ])
+      
+      if (dashboardResponse.data) {
+        setDashboard(dashboardResponse.data)
+      }
+      
+      if (metricsResponse.data) {
+        setMetrics(metricsResponse.data)
+      }
+      
+      // If both API calls failed, use mock data
+      if (!dashboardResponse.data && !metricsResponse.data) {
+        setError('Unable to fetch real-time data. Displaying sample data.')
+      }
+    } catch (err: any) {
+      console.error('Failed to fetch admin AI data:', err)
+      setError('Failed to load AI analytics data')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  React.useEffect(() => {
+    fetchDashboardData()
+    
+    // Refresh every 30 seconds
+    const interval = setInterval(fetchDashboardData, 30000)
+    return () => clearInterval(interval)
+  }, [])
+
+  if (loading && !metrics && !dashboard) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <LoadingSpinner className="w-8 h-8 mx-auto mb-4" />
+          <p className="text-text-secondary">Loading AI analytics...</p>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <>
       <Helmet>
@@ -189,15 +246,27 @@ export default function AdminAI() {
               <p className="text-text-secondary mt-1">
                 Monitor AI usage, costs, and performance metrics
               </p>
+              {error && (
+                <p className="text-sm text-orange-600 mt-1 flex items-center">
+                  <AlertTriangle className="w-4 h-4 mr-1" />
+                  {error}
+                </p>
+              )}
             </div>
             
             <div className="flex items-center space-x-3">
               <Badge className="bg-gradient-to-r from-primary to-purple-500 text-white">
                 <Sparkles className="w-3 h-3 mr-1" />
-                AI Powered Platform
+                {dashboard?.status || 'Live'}
               </Badge>
-              <Button variant="outline" className="rounded-full">
-                Generate Report
+              <Button 
+                variant="outline" 
+                className="rounded-full"
+                onClick={fetchDashboardData}
+                disabled={loading}
+              >
+                <RefreshCw className={cn("w-4 h-4 mr-2", loading && "animate-spin")} />
+                Refresh
               </Button>
             </div>
           </div>

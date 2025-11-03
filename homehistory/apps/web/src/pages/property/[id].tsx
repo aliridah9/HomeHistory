@@ -6,11 +6,14 @@ import { Button } from "@/components/ui/button"
 import { PropertyHero } from "@/components/property/PropertyHero"
 import { PropertyTabs, PropertyTabType } from "@/components/property/PropertyTabs"
 import { PropertySidebar } from "@/components/property/PropertySidebar"
+import { PropertyScoreCard } from "@/components/property/PropertyScoreCard"
+import { SimilarProperties } from "@/components/property/SimilarProperties"
 import { OverviewTab } from "@/components/property/tabs/OverviewTab"
 import { ReportTab } from "@/components/property/tabs/ReportTab"
 import { LoadingSpinner } from "@/components/ui/loading-spinner"
 import { useUIStore } from "@/stores/ui.store"
 import { usePropertiesStore } from "@/stores/properties.store"
+import { usePropertyScore, useSimilarProperties } from "@/hooks/usePropertyScore"
 import { Container } from "@/components/layout/Layout"
 
 // Mock property data - in production this would come from the API
@@ -160,6 +163,10 @@ export default function PropertyDetailsPage() {
   
   const [activeTab, setActiveTab] = React.useState<PropertyTabType>('overview')
   const [isLoading, setIsLoading] = React.useState(false)
+  
+  // Fetch property score and similar properties
+  const { score: propertyScore, loading: scoreLoading } = usePropertyScore(id)
+  const { properties: similarProperties, loading: similarLoading } = useSimilarProperties(id, 5)
   const [comparedProperties, setComparedProperties] = React.useState<string[]>([])
   
   const property = MOCK_PROPERTY // In production: fetch from API using id
@@ -342,6 +349,36 @@ export default function PropertyDetailsPage() {
               <div className="min-h-[600px]">
                 {renderActiveTab()}
               </div>
+              
+              {/* HomeHistory Score */}
+              {propertyScore && !scoreLoading && (
+                <PropertyScoreCard
+                  score={propertyScore.score}
+                  breakdown={propertyScore.breakdown}
+                  explanation={propertyScore.explanation}
+                  confidence={propertyScore.confidence}
+                  dataCompleteness={propertyScore.dataCompleteness}
+                  lastCalculated={propertyScore.lastCalculated}
+                  className="mt-8"
+                />
+              )}
+              
+              {/* Similar Properties */}
+              {similarProperties.length > 0 && !similarLoading && (
+                <SimilarProperties
+                  properties={similarProperties}
+                  onPropertyClick={(propId) => navigate(`/property/${propId}`)}
+                  onFavorite={(propId) => {
+                    if (favoritedProperties.includes(propId)) {
+                      unfavoriteProperty(propId)
+                    } else {
+                      favoriteProperty(propId)
+                    }
+                  }}
+                  favoritedIds={favoritedProperties}
+                  className="mt-8"
+                />
+              )}
             </div>
 
             {/* Sidebar */}
