@@ -1,11 +1,14 @@
 # HomeHistory Real Estate Data Ingestion - Docker Compose
 # Complete development and production environment setup
+# 
+# UPDATED: Now includes full-stack HomeHistory application support
+# Use docker-compose.fullstack.yml for the complete Node.js application
 
 version: '3.8'
 
 services:
   # =============================================================================
-  # Main Application Service
+  # Main Application Service (Python Ingestion)
   # =============================================================================
   app:
     build:
@@ -205,37 +208,81 @@ volumes:
   grafana_data:
     name: hh-ingest-grafana-data
 
-# =============================================================================
-# Usage Examples:
-# =============================================================================
+  # =============================================================================
+  # Full-Stack HomeHistory Application Services
+  # =============================================================================
+  # NOTE: For the complete Node.js/React application, use:
+  # docker-compose -f docker-compose.fullstack.yml up -d
+  
+  homehistory-backend:
+    image: homehistory-api:latest
+    container_name: homehistory-backend
+    profiles: ["fullstack"]
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=postgresql://postgres:${POSTGRES_PASSWORD:-password}@postgres:5432/${POSTGRES_DB:-hh_ingest}
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_SERVICE_KEY=${SUPABASE_SERVICE_KEY}
+      - JWT_ACCESS_SECRET=${JWT_ACCESS_SECRET}
+      - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET}
+    ports:
+      - "3001:3001"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - hh-network
 
-# Basic setup with database:
-# docker-compose up postgres
-# docker-compose run --rm app init-db
-# docker-compose run --rm app ingest --regions "houston_metro" --max-listings 10
+  homehistory-frontend:
+    image: homehistory-web:latest
+    container_name: homehistory-frontend
+    profiles: ["fullstack"]
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    depends_on:
+      - homehistory-backend
+    networks:
+      - hh-network
 
-# Development mode:
-# docker-compose --profile dev up -d
-# docker-compose exec app-dev bash
+  # =============================================================================
+  # Usage Examples:
+  # =============================================================================
 
-# Full stack with monitoring:
-# docker-compose --profile dev --profile admin --profile monitoring up -d
+  # Python Ingestion System:
+  # docker-compose up postgres
+  # docker-compose run --rm app init-db
+  # docker-compose run --rm app ingest --regions "houston_metro" --max-listings 10
 
-# Production deployment:
-# docker-compose up -d app postgres
+  # Full-Stack Application (recommended):
+  # docker-compose -f docker-compose.fullstack.yml up -d
 
-# Run specific commands:
-# docker-compose run --rm app discover --regions "austin_metro"
-# docker-compose run --rm app test-connection
-# docker-compose run --rm app config
+  # Both systems together:
+  # docker-compose --profile fullstack up -d
 
-# View logs:
-# docker-compose logs -f app
-# docker-compose logs postgres
+  # Development mode:
+  # docker-compose --profile dev up -d
+  # docker-compose exec app-dev bash
 
-# Scale application (if needed):
-# docker-compose up --scale app=3
+  # Full stack with monitoring:
+  # docker-compose --profile dev --profile admin --profile monitoring up -d
 
-# Cleanup:
-# docker-compose down -v  # Remove containers and volumes
-# docker-compose down --rmi all -v  # Remove everything including images
+  # Production deployment:
+  # docker-compose up -d app postgres
+
+  # Run specific commands:
+  # docker-compose run --rm app discover --regions "austin_metro"
+  # docker-compose run --rm app test-connection
+  # docker-compose run --rm app config
+
+  # View logs:
+  # docker-compose logs -f app
+  # docker-compose logs postgres
+
+  # Scale application (if needed):
+  # docker-compose up --scale app=3
+
+  # Cleanup:
+  # docker-compose down -v  # Remove containers and volumes
+  # docker-compose down --rmi all -v  # Remove everything including images

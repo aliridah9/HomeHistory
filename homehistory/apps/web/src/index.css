@@ -53,14 +53,16 @@
   * {
     @apply border-border;
   }
-  
+
   html {
     @apply scroll-smooth;
   }
-  
+
   body {
     @apply bg-background text-foreground;
-    font-feature-settings: "rlig" 1, "calt" 1;
+    font-feature-settings:
+      'rlig' 1,
+      'calt' 1;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
@@ -83,9 +85,9 @@
   }
 
   /* Focus styles */
-  :focus-visible {
+  /* :focus-visible {
     @apply outline-none ring-2 ring-ring ring-offset-2 ring-offset-background;
-  }
+  } */
 
   /* Selection styles */
   ::selection {
@@ -96,15 +98,19 @@
 @layer components {
   /* HomeHistory specific component styles */
   .homehistory-gradient {
-    background: linear-gradient(135deg, 
-      hsl(var(--homehistory-400)) 0%, 
-      hsl(var(--homehistory-600)) 100%);
+    background: linear-gradient(
+      135deg,
+      hsl(var(--homehistory-400)) 0%,
+      hsl(var(--homehistory-600)) 100%
+    );
   }
 
   .homehistory-gradient-text {
-    background: linear-gradient(135deg, 
-      hsl(var(--homehistory-500)) 0%, 
-      hsl(var(--homehistory-700)) 100%);
+    background: linear-gradient(
+      135deg,
+      hsl(var(--homehistory-500)) 0%,
+      hsl(var(--homehistory-700)) 100%
+    );
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
@@ -130,9 +136,11 @@
   .property-card::before {
     content: '';
     @apply absolute inset-0 rounded-lg opacity-0 transition-opacity duration-300;
-    background: linear-gradient(135deg, 
-      hsl(var(--homehistory-500) / 0.1) 0%, 
-      hsl(var(--homehistory-600) / 0.1) 100%);
+    background: linear-gradient(
+      135deg,
+      hsl(var(--homehistory-500) / 0.1) 0%,
+      hsl(var(--homehistory-600) / 0.1) 100%
+    );
   }
 
   .property-card:hover::before {
@@ -160,17 +168,11 @@
   .shimmer::before {
     content: '';
     @apply absolute inset-0 -translate-x-full animate-shimmer;
-    background: linear-gradient(90deg, 
-      transparent, 
-      rgba(255, 255, 255, 0.6), 
-      transparent);
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.6), transparent);
   }
 
   .dark .shimmer::before {
-    background: linear-gradient(90deg, 
-      transparent, 
-      rgba(255, 255, 255, 0.1), 
-      transparent);
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
   }
 
   /* Dashboard grid */
@@ -199,7 +201,53 @@
     @apply text-sm text-destructive;
   }
 
-  /* Button variants */
+  @layer components {
+    /* Base button */
+    .btn {
+      @apply inline-flex justify-center items-center gap-1 font-semibold transition-all duration-200;
+    }
+
+    /* Button sizes */
+    .btn-sm {
+      @apply px-4 py-2 text-sm rounded-[12px];
+    }
+
+    .btn-md {
+      @apply px-6 py-4 text-base rounded-[12px];
+    }
+
+    .btn-lg {
+      @apply px-8 py-4 text-lg rounded-[16px];
+    }
+
+    .rounded-sm {
+      @apply px-4 py-2 rounded-[38px];
+    }
+    .rounded-md {
+      @apply px-5 py-2.5  rounded-[22px];
+    }
+    .rounded-lg {
+      @apply px-6 py-3 rounded-[20px];
+    }
+
+    /* Icon spacing  */
+    .btn-icon-left > .icon-left {
+      @apply mr-1;
+    }
+
+    .btn-outline {
+      @apply rounded-3xl border border-tertiary-500 text-tertiary-500 hover:bg-hover-100;
+    }
+
+    .btn-primary {
+      @apply rounded-3xl text-white bg-tertiary-500 hover:bg-tertiary-600;
+    }
+
+    .btn-dark {
+      @apply rounded-3xl text-white bg-tertiary-950 hover:bg-tertiary-900;
+    }
+  }
+
   .btn-gradient {
     @apply bg-gradient-to-r from-homehistory-500 to-homehistory-600 text-white hover:from-homehistory-600 hover:to-homehistory-700 transition-all duration-200;
   }
@@ -284,9 +332,214 @@
     .print-hidden {
       @apply hidden;
     }
-    
+
     .print-visible {
       @apply block;
     }
   }
+}
+
+/* Remove input borders */
+.PhoneInput input {
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+.PhoneInput input:focus {
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* Style the country selector button */
+.PhoneInputCountrySelect {
+  background: transparent !important;
+  border: none !important;
+  outline: none !important;
+  margin-right: 8px !important;
+  cursor: pointer !important;
+  border-radius: 6px !important;
+  padding: 4px 6px !important;
+  transition: background-color 0.2s ease !important;
+}
+
+.PhoneInputCountrySelect:hover {
+  background-color: #f3f4f6 !important;
+}
+
+.PhoneInputCountrySelect:focus {
+  outline: none !important;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.5) !important;
+}
+
+.PhoneInputCountrySelectArrow {
+  color: #6b7280 !important;
+  font-size: 12px !important;
+  margin-left: 4px !important;
+}
+
+.PhoneInputCountrySelect option {
+  padding: 8px 12px !important;
+  font-size: 14px !important;
+  background-color: white !important;
+  color: #1f2937 !important;
+}
+
+.PhoneInputCountrySelect option:hover {
+  background-color: #f3f4f6 !important;
+}
+
+.PhoneInputCountrySelect option:selected {
+  background-color: #3b82f6 !important;
+  color: white !important;
+}
+
+.PhoneInputCountryIcon {
+  width: 20px !important;
+  height: 15px !important;
+  border-radius: 2px !important;
+  margin-right: 6px !important;
+}
+
+.PhoneInputCountrySelect {
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  -moz-appearance: none !important;
+}
+
+/* Custom arrow using pseudo-element */
+.PhoneInputCountrySelect::after {
+  content: '▼' !important;
+  font-size: 10px !important;
+  color: #6b7280 !important;
+  margin-left: 4px !important;
+}
+
+.ai-gradient {
+  border-radius: 36px;
+  box-shadow: 0 4px 7.5px 0 rgba(7, 16, 34, 0.15);
+}
+
+.ai-gradient:before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  padding: 6px;
+  border-radius: 36px;
+  background: linear-gradient(47deg, #1bc2fc 16.63%, #1d74f2 51.28%, #dc02a9 82.75%);
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  z-index: -1;
+  pointer-events: none;
+}
+
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* For Firefox */
+.hide-scrollbar {
+  scrollbar-width: none;
+}
+
+/* For all browsers */
+.hide-scrollbar {
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
+}
+.hide-scrollbar::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
+}
+
+.custom-datepicker-popper {
+  z-index: 50;
+}
+
+.react-datepicker {
+  @apply font-sans border-0 shadow-xl rounded-2xl overflow-hidden;
+}
+
+.react-datepicker__header {
+  @apply bg-blue-500 border-0 rounded-none p-4;
+}
+
+.react-datepicker__current-month {
+  @apply text-white font-semibold text-base;
+}
+
+.react-datepicker__navigation {
+  @apply top-4;
+}
+
+.react-datepicker__navigation--previous {
+  @apply left-4;
+  border-right-color: white;
+}
+
+.react-datepicker__navigation--next {
+  @apply right-4;
+  border-left-color: white;
+}
+
+.react-datepicker__day-names {
+  @apply bg-gray-50 border-b border-gray-200;
+}
+
+.react-datepicker__day-name {
+  @apply text-gray-500 font-semibold text-xs w-8 h-8 leading-8;
+}
+
+.react-datepicker__day {
+  @apply w-8 h-8 leading-8 m-0.5 rounded-lg text-gray-700 font-medium transition-all duration-200;
+}
+
+.react-datepicker__day:hover {
+  @apply bg-blue-50 text-blue-700;
+}
+
+.react-datepicker__day--selected {
+  @apply bg-blue-500 text-white font-semibold;
+}
+
+.react-datepicker__day--selected:hover {
+  @apply bg-blue-600;
+}
+
+.react-datepicker__day--today {
+  @apply bg-yellow-100 text-yellow-800 font-semibold;
+}
+
+.react-datepicker__day--today:hover {
+  @apply bg-yellow-200;
+}
+
+.react-datepicker__day--disabled {
+  @apply text-gray-300 cursor-not-allowed;
+}
+
+.react-datepicker__day--disabled:hover {
+  @apply bg-transparent text-gray-300;
+}
+
+.react-datepicker__time-container {
+  @apply border-l border-gray-200;
+}
+
+.react-datepicker__time-header {
+  @apply text-blue-500 font-semibold;
+}
+
+.react-datepicker__time-list-item {
+  @apply px-4 py-2 font-medium transition-all duration-200;
+}
+
+.react-datepicker__time-list-item:hover {
+  @apply bg-blue-50 text-blue-700;
+}
+
+.react-datepicker__time-list-item--selected {
+  @apply bg-blue-500 text-white font-semibold;
 }

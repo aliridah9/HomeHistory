@@ -1,0 +1,153 @@
+# HomeHistory Docker Environment Configuration
+# Copy this to .env in the root directory and update with your actual values
+
+# =============================================================================
+# Application Configuration
+# =============================================================================
+NODE_ENV=production
+VERSION=latest
+BUILD_DATE=
+VCS_REF=
+
+# =============================================================================
+# Port Configuration
+# =============================================================================
+FRONTEND_PORT=3000
+BACKEND_PORT=3001
+POSTGRES_PORT=5432
+REDIS_PORT=6379
+PGADMIN_PORT=8080
+PROMETHEUS_PORT=9090
+GRAFANA_PORT=3002
+
+# =============================================================================
+# Database Configuration
+# =============================================================================
+POSTGRES_DB=homehistory
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD=homehistory_password_change_in_production
+
+# =============================================================================
+# Redis Configuration
+# =============================================================================
+REDIS_PASSWORD=redis_password_change_in_production
+
+# =============================================================================
+# Supabase Configuration
+# =============================================================================
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_SERVICE_KEY=your-supabase-service-key
+SUPABASE_ANON_KEY=your-supabase-anon-key
+
+# =============================================================================
+# JWT Configuration
+# =============================================================================
+JWT_ACCESS_SECRET=your-jwt-access-secret-key-minimum-32-characters-long
+JWT_REFRESH_SECRET=your-jwt-refresh-secret-key-minimum-32-characters-long
+JWT_ACCESS_EXPIRES=15m
+JWT_REFRESH_EXPIRES=7d
+
+# =============================================================================
+# URL Configuration
+# =============================================================================
+FRONTEND_URL=http://localhost:3000
+API_BASE_URL=http://localhost:3001
+CORS_ORIGIN=http://localhost:3000
+
+# =============================================================================
+# External API Keys (Optional)
+# =============================================================================
+OPENAI_API_KEY=your-openai-api-key
+ZILLOW_API_KEY=your-zillow-api-key
+GOOGLE_MAPS_API_KEY=your-google-maps-api-key
+COUNTY_RECORDS_API_KEY=your-county-records-api-key
+TAX_ASSESSOR_API_KEY=your-tax-assessor-api-key
+PERMIT_DATA_API_KEY=your-permit-data-api-key
+
+# =============================================================================
+# OAuth Configuration (Optional)
+# =============================================================================
+GOOGLE_CLIENT_ID=your-google-client-id
+GOOGLE_CLIENT_SECRET=your-google-client-secret
+GOOGLE_CALLBACK_URL=http://localhost:3001/auth/google/callback
+
+FACEBOOK_APP_ID=your-facebook-app-id
+FACEBOOK_APP_SECRET=your-facebook-app-secret
+FACEBOOK_CALLBACK_URL=http://localhost:3001/auth/facebook/callback
+
+# =============================================================================
+# Error Monitoring (Optional)
+# =============================================================================
+SENTRY_DSN=your-sentry-dsn
+
+# =============================================================================
+# Admin Tools Configuration
+# =============================================================================
+PGADMIN_EMAIL=admin@homehistory.com
+PGADMIN_PASSWORD=admin_password_change_in_production
+
+# =============================================================================
+# Monitoring Configuration
+# =============================================================================
+GRAFANA_PASSWORD=grafana_password_change_in_production
+
+# =============================================================================
+# Development Configuration
+# =============================================================================
+# Set to true for development mode
+ENABLE_DEV_MODE=false
+
+# Set to true to enable admin tools
+ENABLE_ADMIN_TOOLS=false
+
+# Set to true to enable monitoring
+ENABLE_MONITORING=false
+
+# =============================================================================
+# Security Configuration
+# =============================================================================
+# Change these in production
+SESSION_SECRET=your-session-secret-key-minimum-32-characters-long
+WEBHOOK_SECRET=your-webhook-secret-key
+
+# =============================================================================
+# Performance Configuration
+# =============================================================================
+# Rate limiting
+RATE_LIMIT_WINDOW=900000
+RATE_LIMIT_MAX_REQUESTS=100
+
+# Cache TTL
+CACHE_TTL=300
+
+# =============================================================================
+# Logging Configuration
+# =============================================================================
+LOG_LEVEL=info
+LOG_FORMAT=json
+
+# =============================================================================
+# Health Check Configuration
+# =============================================================================
+HEALTH_CHECK_TIMEOUT=5000
+HEALTH_CHECK_INTERVAL=30000
+
+# =============================================================================
+# File Upload Configuration
+# =============================================================================
+UPLOAD_MAX_SIZE=10485760
+UPLOAD_ALLOWED_TYPES=image/jpeg,image/png,image/webp,application/pdf,text/plain
+
+# =============================================================================
+# Background Jobs Configuration
+# =============================================================================
+JOB_CONCURRENCY=5
+
+# =============================================================================
+# Email Configuration (Optional)
+# =============================================================================
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=your-email@gmail.com
+SMTP_PASS=your-app-password
+FROM_EMAIL=noreply@homehistory.com

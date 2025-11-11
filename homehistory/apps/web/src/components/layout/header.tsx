@@ -1,60 +1,69 @@
-import * as React from "react"
-import { Link, useLocation, useNavigate } from "react-router-dom"
-import { 
-  Search, 
-  User, 
-  Settings, 
-  LogOut, 
+import * as React from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import {
+  Search,
+  User,
+  Settings,
+  LogOut,
   Bell,
   Menu,
   X,
   Home,
   Building,
-  BarChart3
-} from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Container } from "./Layout"
-import { useUser, useAuthStore } from "@/stores/auth.store"
-import { useUIStore } from "@/stores/ui.store"
-import { cn } from "@/lib/utils"
+  BarChart3,
+} from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Container } from './Layout';
+import { useUser, useAuthStore } from '@/stores/auth.store';
+import { useUIStore } from '@/stores/ui.store';
+import { useNotifications } from '@/hooks/useNotifications';
+import { NotificationCenter } from '@/components/notifications/NotificationCenter';
+import { cn } from '@/lib/utils';
 
 export function Header() {
-  const location = useLocation()
-  const navigate = useNavigate()
-  const user = useUser()
-  const { logout } = useAuthStore()
-  const { toggleSidebar, isSidebarOpen } = useUIStore()
-  
-  const [searchQuery, setSearchQuery] = React.useState("")
-  const [isUserMenuOpen, setIsUserMenuOpen] = React.useState(false)
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false)
+  const location = useLocation();
+  const navigate = useNavigate();
+  const user = useUser();
+  const { logout } = useAuthStore();
+  const { toggleSidebar, isSidebarOpen } = useUIStore();
+  const {
+    notifications,
+    markAsRead,
+    markAllAsRead,
+    deleteNotification,
+    clearAll,
+  } = useNotifications();
+
+  const [searchQuery, setSearchQuery] = React.useState('');
+  const [isUserMenuOpen, setIsUserMenuOpen] = React.useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
 
   const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault()
+    e.preventDefault();
     if (searchQuery.trim()) {
-      navigate(`/search?q=${encodeURIComponent(searchQuery.trim())}`)
+      navigate(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
     }
-  }
+  };
 
   const handleLogout = async () => {
-    await logout()
-    navigate("/auth/login")
-  }
+    await logout();
+    navigate('/auth/login');
+  };
 
   const navigation = [
-    { name: "Home", href: "/", icon: Home },
-    { name: "Search", href: "/search", icon: Search },
-    { name: "Properties", href: "/properties", icon: Building },
-    { name: "Dashboard", href: "/dashboard", icon: BarChart3, authRequired: true },
-  ]
+    { name: 'Home', href: '/', icon: Home },
+    { name: 'Search', href: '/search', icon: Search },
+    { name: 'Properties', href: '/properties', icon: Building },
+    { name: 'Dashboard', href: '/dashboard', icon: BarChart3, authRequired: true },
+  ];
 
   const isActive = (path: string) => {
-    if (path === "/") {
-      return location.pathname === "/"
+    if (path === '/') {
+      return location.pathname === '/';
     }
-    return location.pathname.startsWith(path)
-  }
+    return location.pathname.startsWith(path);
+  };
 
   return (
     <header className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -63,16 +72,11 @@ export function Header() {
           {/* Logo and Mobile Menu */}
           <div className="flex items-center space-x-4">
             {user && (
-              <Button
-                variant="ghost"
-                size="sm"
-                className="md:hidden"
-                onClick={toggleSidebar}
-              >
+              <Button variant="ghost" size="sm" className="md:hidden" onClick={toggleSidebar}>
                 {isSidebarOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
               </Button>
             )}
-            
+
             <Link to="/" className="flex items-center space-x-2">
               <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
                 <span className="text-sm font-bold">H</span>
@@ -86,23 +90,23 @@ export function Header() {
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center space-x-6">
             {navigation.map((item) => {
-              if (item.authRequired && !user) return null
-              
+              if (item.authRequired && !user) return null;
+
               return (
                 <Link
                   key={item.name}
                   to={item.href}
                   className={cn(
-                    "flex items-center space-x-2 text-sm font-medium transition-colors hover:text-primary",
-                    isActive(item.href) 
-                      ? "text-primary" 
-                      : "text-text-secondary hover:text-text-primary"
+                    'flex items-center space-x-2 text-sm font-medium transition-colors hover:text-primary',
+                    isActive(item.href)
+                      ? 'text-primary'
+                      : 'text-text-secondary hover:text-text-primary'
                   )}
                 >
                   <item.icon className="h-4 w-4" />
                   <span>{item.name}</span>
                 </Link>
-              )
+              );
             })}
           </nav>
 
@@ -127,7 +131,7 @@ export function Header() {
               variant="ghost"
               size="sm"
               className="sm:hidden"
-              onClick={() => navigate("/search")}
+              onClick={() => navigate('/search')}
             >
               <Search className="h-5 w-5" />
             </Button>
@@ -135,10 +139,13 @@ export function Header() {
             {user ? (
               <>
                 {/* Notifications */}
-                <Button variant="ghost" size="sm" className="relative">
-                  <Bell className="h-5 w-5" />
-                  <span className="absolute -top-1 -right-1 h-3 w-3 rounded-full bg-danger text-xs"></span>
-                </Button>
+                <NotificationCenter
+                  notifications={notifications}
+                  onMarkAsRead={markAsRead}
+                  onMarkAllAsRead={markAllAsRead}
+                  onDeleteNotification={deleteNotification}
+                  onClearAll={clearAll}
+                />
 
                 {/* User Menu */}
                 <div className="relative">
@@ -163,7 +170,7 @@ export function Header() {
                         <p className="text-sm font-medium">{user.name}</p>
                         <p className="text-xs text-text-secondary">{user.email}</p>
                       </div>
-                      
+
                       <div className="py-1">
                         <Link
                           to="/profile"
@@ -173,7 +180,7 @@ export function Header() {
                           <User className="mr-3 h-4 w-4" />
                           Profile
                         </Link>
-                        
+
                         <Link
                           to="/settings"
                           className="flex items-center px-4 py-2 text-sm hover:bg-muted"
@@ -182,11 +189,11 @@ export function Header() {
                           <Settings className="mr-3 h-4 w-4" />
                           Settings
                         </Link>
-                        
+
                         <button
                           onClick={() => {
-                            setIsUserMenuOpen(false)
-                            handleLogout()
+                            setIsUserMenuOpen(false);
+                            handleLogout();
                           }}
                           className="flex w-full items-center px-4 py-2 text-sm hover:bg-muted text-danger"
                         >
@@ -206,9 +213,7 @@ export function Header() {
                   </Button>
                 </Link>
                 <Link to="/auth/register">
-                  <Button size="sm">
-                    Sign up
-                  </Button>
+                  <Button size="sm">Sign up</Button>
                 </Link>
               </div>
             )}
@@ -220,26 +225,26 @@ export function Header() {
           <div className="md:hidden border-t py-4">
             <div className="flex flex-col space-y-3">
               {navigation.map((item) => {
-                if (item.authRequired && !user) return null
-                
+                if (item.authRequired && !user) return null;
+
                 return (
                   <Link
                     key={item.name}
                     to={item.href}
                     className={cn(
-                      "flex items-center space-x-3 px-3 py-2 rounded-md text-sm font-medium",
+                      'flex items-center space-x-3 px-3 py-2 rounded-md text-sm font-medium',
                       isActive(item.href)
-                        ? "bg-primary/10 text-primary"
-                        : "text-text-secondary hover:text-text-primary hover:bg-muted"
+                        ? 'bg-primary/10 text-primary'
+                        : 'text-text-secondary hover:text-text-primary hover:bg-muted'
                     )}
                     onClick={() => setIsMobileMenuOpen(false)}
                   >
                     <item.icon className="h-4 w-4" />
                     <span>{item.name}</span>
                   </Link>
-                )
+                );
               })}
-              
+
               {/* Mobile Search */}
               <form onSubmit={handleSearch} className="px-3">
                 <div className="relative">
@@ -260,14 +265,14 @@ export function Header() {
 
       {/* Click outside to close menus */}
       {(isUserMenuOpen || isMobileMenuOpen) && (
-        <div 
-          className="fixed inset-0 z-40" 
+        <div
+          className="fixed inset-0 z-40"
           onClick={() => {
-            setIsUserMenuOpen(false)
-            setIsMobileMenuOpen(false)
+            setIsUserMenuOpen(false);
+            setIsMobileMenuOpen(false);
           }}
         />
       )}
     </header>
-  )
+  );
 }

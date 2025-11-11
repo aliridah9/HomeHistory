@@ -1,4 +1,4 @@
-import type { Config } from 'tailwindcss'
+import type { Config } from 'tailwindcss';
 
 const config: Config = {
   darkMode: ['class'],
@@ -8,7 +8,6 @@ const config: Config = {
     './app/**/*.{ts,tsx}',
     './src/**/*.{ts,tsx}',
   ],
-  prefix: '',
   theme: {
     container: {
       center: true,
@@ -19,23 +18,40 @@ const config: Config = {
     },
     extend: {
       colors: {
+        // Core custom variables from first config
         border: 'hsl(var(--border))',
         input: 'hsl(var(--input))',
         ring: 'hsl(var(--ring))',
         background: 'hsl(var(--background))',
         foreground: 'hsl(var(--foreground))',
+
+        // Extended palette
+        gray: {
+          50: '#fafafa',
+          100: '#f6f7f9',
+          200: '#e5e7ea',
+          300: '#ced2d6',
+          400: '#9ea5ad',
+          500: '#676e76',
+          600: '#596066',
+          700: '#454c52',
+          800: '#383f45',
+          900: '#24292e',
+          1000: '#1a1d1f',
+        },
         primary: {
-          DEFAULT: '#007AFF',
-          50: '#E5F3FF',
-          100: '#CCE7FF',
-          200: '#99CFFF',
-          300: '#66B7FF',
-          400: '#339FFF',
-          500: '#007AFF',
-          600: '#0062CC',
-          700: '#004999',
-          800: '#003166',
-          900: '#001933',
+          DEFAULT: '#4197CB',
+          50: '#f3f7fc',
+          100: '#e5f0f9',
+          200: '#c6dff1',
+          300: '#94c6e5',
+          400: '#5aa8d6',
+          500: '#4197CB',
+          600: '#2571a4',
+          700: '#1f5a85',
+          800: '#1d4d6f',
+          900: '#1d415d',
+          950: '#142a3d',
           foreground: '#FFFFFF',
         },
         secondary: {
@@ -68,8 +84,7 @@ const config: Config = {
         'text-primary': '#1D1D1F',
         'text-secondary': '#6E6E73',
         'text-tertiary': '#AEAEB2',
-        // HomeHistory brand colors (legacy compatibility)
-        'homehistory': {
+        homehistory: {
           50: '#f0f9ff',
           100: '#e0f2fe',
           200: '#bae6fd',
@@ -82,7 +97,7 @@ const config: Config = {
           900: '#0c4a6e',
           950: '#082f49',
         },
-        'success': {
+        success: {
           DEFAULT: '#34C759',
           50: '#F0FDF4',
           100: '#DCFCE7',
@@ -96,7 +111,7 @@ const config: Config = {
           900: '#14532D',
           950: '#052E16',
         },
-        'warning': {
+        warning: {
           50: '#fffbeb',
           100: '#fef3c7',
           200: '#fde68a',
@@ -109,7 +124,7 @@ const config: Config = {
           900: '#78350f',
           950: '#451a03',
         },
-        'danger': {
+        danger: {
           DEFAULT: '#FF3B30',
           50: '#FEF2F2',
           100: '#FEE2E2',
@@ -123,7 +138,7 @@ const config: Config = {
           900: '#7F1D1D',
           950: '#450A0A',
         },
-        'error': {
+        error: {
           50: '#fef2f2',
           100: '#fee2e2',
           200: '#fecaca',
@@ -135,7 +150,7 @@ const config: Config = {
           800: '#991b1b',
           900: '#7f1d1d',
           950: '#450a0a',
-        }
+        },
       },
       borderRadius: {
         lg: 'var(--radius)',
@@ -185,10 +200,10 @@ const config: Config = {
           '70%': { transform: 'scale(0.9)' },
           '100%': { transform: 'scale(1)', opacity: '1' },
         },
-        'shimmer': {
+        shimmer: {
           '0%': { transform: 'translateX(-100%)' },
           '100%': { transform: 'translateX(100%)' },
-        }
+        },
       },
       animation: {
         'accordion-down': 'accordion-down 0.2s ease-out',
@@ -201,10 +216,18 @@ const config: Config = {
         'slide-in-from-right': 'slide-in-from-right 0.3s ease-out',
         'pulse-scale': 'pulse-scale 2s infinite',
         'bounce-in': 'bounce-in 0.6s ease-out',
-        'shimmer': 'shimmer 2s infinite',
+        shimmer: 'shimmer 2s infinite',
       },
       fontFamily: {
-        sans: ['Inter', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
+        sans: [
+          'Inter',
+          'system-ui',
+          '-apple-system',
+          'BlinkMacSystemFont',
+          'Segoe UI',
+          'Roboto',
+          'sans-serif',
+        ],
         mono: ['JetBrains Mono', 'monospace'],
       },
       fontWeight: {
@@ -213,36 +236,35 @@ const config: Config = {
         bold: '700',
       },
       spacing: {
-        '0': '0px',
-        '1': '8px',    // 8px grid base
-        '2': '16px',   // 2 * 8px
-        '3': '24px',   // 3 * 8px
-        '4': '32px',   // 4 * 8px
-        '5': '40px',   // 5 * 8px
-        '6': '48px',   // 6 * 8px
-        '8': '64px',   // 8 * 8px
-        '10': '80px',  // 10 * 8px
-        '12': '96px',  // 12 * 8px
-        '16': '128px', // 16 * 8px
-        '20': '160px', // 20 * 8px
-        '24': '192px', // 24 * 8px
-        '32': '256px', // 32 * 8px
-         '18': '4.5rem',
-          '88': '22rem',
-          '128': '32rem',
-        // Fractional spacing
-        'px': '1px',
-        '0.5': '4px',  // 0.5 * 8px
-        '1.5': '12px', // 1.5 * 8px
-        '2.5': '20px', // 2.5 * 8px
-        '3.5': '28px', // 3.5 * 8px
+        0: '0px',
+        1: '8px',
+        2: '16px',
+        3: '24px',
+        4: '32px',
+        5: '40px',
+        6: '48px',
+        8: '64px',
+        10: '80px',
+        12: '96px',
+        16: '128px',
+        18: '4.5rem',
+        20: '160px',
+        24: '192px',
+        32: '256px',
+        88: '22rem',
+        128: '32rem',
+        px: '1px',
+        0.5: '4px',
+        1.5: '12px',
+        2.5: '20px',
+        3.5: '28px',
       },
       fontSize: {
-        'xs': ['0.75rem', { lineHeight: '1rem' }],
-        'sm': ['0.875rem', { lineHeight: '1.25rem' }],
-        'base': ['1rem', { lineHeight: '1.5rem' }],
-        'lg': ['1.125rem', { lineHeight: '1.75rem' }],
-        'xl': ['1.25rem', { lineHeight: '1.75rem' }],
+        xs: ['0.75rem', { lineHeight: '1rem' }],
+        sm: ['0.875rem', { lineHeight: '1.25rem' }],
+        base: ['1rem', { lineHeight: '1.5rem' }],
+        lg: ['1.125rem', { lineHeight: '1.75rem' }],
+        xl: ['1.25rem', { lineHeight: '1.75rem' }],
         '2xl': ['1.5rem', { lineHeight: '2rem' }],
         '3xl': ['1.875rem', { lineHeight: '2.25rem' }],
         '4xl': ['2.25rem', { lineHeight: '2.5rem' }],
@@ -252,23 +274,18 @@ const config: Config = {
         '8xl': ['6rem', { lineHeight: '1' }],
         '9xl': ['8rem', { lineHeight: '1' }],
       },
-      spacing: {
-        '18': '4.5rem',
-        '88': '22rem',
-        '128': '32rem',
-      },
       maxWidth: {
         '8xl': '88rem',
         '9xl': '96rem',
       },
       boxShadow: {
-        'soft': '0 2px 15px -3px rgba(0, 0, 0, 0.07), 0 10px 20px -2px rgba(0, 0, 0, 0.04)',
-        'medium': '0 4px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
-        'hard': '0 10px 40px -15px rgba(0, 0, 0, 0.2), 0 10px 20px -2px rgba(0, 0, 0, 0.04)',
+        soft: '0 2px 15px -3px rgba(0, 0, 0, 0.07), 0 10px 20px -2px rgba(0, 0, 0, 0.04)',
+        medium: '0 4px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+        hard: '0 10px 40px -15px rgba(0, 0, 0, 0.2), 0 10px 20px -2px rgba(0, 0, 0, 0.04)',
       },
     },
   },
   plugins: [require('tailwindcss-animate')],
-} satisfies Config
+} satisfies Config;
 
-export default config
+export default config;
